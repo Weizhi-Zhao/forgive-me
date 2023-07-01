@@ -1,6 +1,6 @@
 #include "A1_controller.h"
 #include "ros/ros.h"
-#include "kinematis.h"
+#include "kinematics.h"
 // int main()
 // {
 //     // A1_motor motor("/dev/ttyUSB2", 2, RH_KFE_INIT_POS, -1);
@@ -47,12 +47,12 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "A1_testHAN");
     float init_pos[3] = {RF_HAA_INIT_POS, RF_HFE_INIT_POS, RF_KFE_INIT_POS};
     int signals[3] = {1, -1, -1};
-    Leg leg(RF, init_pos, signals);
+    Leg leg(R_F, init_pos, signals);
 
     for(float x = 0; x < L2 / 3; x = x + 1){
         float y = 0;
-        flaot z = 4/3 * L1;
+        float z = 4/3 * L1;
         leg.setCooridinate(x, y, z);
-        ros::Duration(2).sleep()
+        ros::Duration(2).sleep();
     }
 }

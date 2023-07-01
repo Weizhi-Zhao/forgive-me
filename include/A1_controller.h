@@ -1,3 +1,4 @@
+#pragma once
 #include "serialPort/SerialPort.h"
 #include <csignal>
 #include <cmath>
