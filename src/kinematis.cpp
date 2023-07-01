@@ -65,7 +65,7 @@ void Leg::generateTrajectory(int phase, float coordinate[3])
 
     // 如果把总周期的一半当成子周期，subPhase就是子周期的相位
     float subPhase;
-    if(phase > this->phaseNum / 2){
+    if(phase >= this->phaseNum / 2){
         subPhase = phase - this->phaseNum / 2;
     }
     else{
