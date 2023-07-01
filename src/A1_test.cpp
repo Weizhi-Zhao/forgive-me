@@ -46,14 +46,31 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "A1_testHAN");
     ros::NodeHandle nh;
-    float init_pos[3] = {RF_HAA_INIT_POS, RF_HFE_INIT_POS, RF_KFE_INIT_POS};
-    int signals[3] = {1, 1, 1};
-    Leg leg(R_F, init_pos, signals);
+    float init_pos[4][3] = {
+              {RF_HAA_INIT_POS, RF_HFE_INIT_POS, RF_KFE_INIT_POS}
+            , {LF_HAA_INIT_POS, LF_HFE_INIT_POS, LF_KFE_INIT_POS}
+            , {RH_HAA_INIT_POS, RH_HFE_INIT_POS, RH_KFE_INIT_POS}
+            , {LH_HAA_INIT_POS, LH_HFE_INIT_POS, LH_KFE_INIT_POS}
+        };
+    int signals[4][3] = {
+                  { 1,  1,  1}
+                , { 1, -1, -1}
+                , {-1,  1,  1}
+                , {-1, -1, -1}
+            };
+    Leg leg[4] = {
+          (R_F, init_pos[0], signals[0])
+        , (L_F, init_pos[1], signals[1])
+        , (R_H, init_pos[2], signals[2])
+        , (L_H, init_pos[3], signals[3])
+        };
 
     for(float x = 0; x < L2 / 1.5; x = x + 5){
         float y = 0;
         float z = -4/3 * L1;
-        leg.setCooridinate(x, y, z);
+        for(int i = 0; i < 4; i++){
+            leg[i].setCooridinate(x, y, z);
+        }
         // ROS_INFO("x=%f, y=%f, z=%f", x, y, z);
         ros::Duration(2).sleep();
     }
