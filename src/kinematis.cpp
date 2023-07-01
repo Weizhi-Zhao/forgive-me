@@ -1,8 +1,11 @@
 #include "kinematics.h"
 #include "ros/ros.h"
 
+float Leg::upLength[3] = {0, 0, 0};
+float Leg::downLength[3] = {0, 0, 0};
+
 // 运动学反解
-void Leg::inverseKinematics(float coordinate[3], float angles[3]){
+void Leg::inverseKinematics(const float coordinate[3], float angles[3]){
 
     float x = coordinate[0];
     float y = coordinate[1];
@@ -54,5 +57,47 @@ void Leg::setCooridinate(float x, float y, float z){
         cmd.q = angle[i];       // desired angle (unit: radian)
         motors[i].setMotor(cmd);
         ROS_INFO("%d angle: %f", i, cmd.q);
+    }
+}
+
+void Leg::trot(int nowPhase){
+    float coordinate[3];
+    generateTrajectory(nowPhase, coordinate);
+    setCooridinate(coordinate);
+}
+
+void Leg::generateTrajectory(int phase, float coordinate[3])
+{
+    float& x = coordinate[0];
+    float& y = coordinate[1];
+    float& z = coordinate[2];
+
+    // 把腿偏置到属于它的周期
+    phase = (phase + self.phaseBias) % self.phaseNum;
+
+    // 如果把总周期的一半当成子周期，subPhase就是子周期的相位
+    float subPhase;
+    if(phase > self.phaseNum / 2){
+        subPhase = phase - self.phaseNum / 2;
+    }
+    else{
+        subPhase = phase;
+    }
+
+    // 把子相位缩放到2Pi里
+    float theta = subPhase / (self.phaseNum / 2 - 1) * 2 * PI;
+    float t = subPhase / (self.phaseNum / 2 - 1);
+
+    if(phase < self.phaseNum / 2){
+        // 抬腿
+        x = self.upLength[0] * ( t  - 0.5 / PI * sin(2*PI*t) );
+        y = self.upLength[1] * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
+        z = 0;
+    }
+    else{
+        // 落腿
+        x = self.downLength[0] * ( 1 - t  + 0.5 / PI * sin(2*PI*t) );
+        y = self.downLength[1] * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
+        z = 0;
     }
 }
