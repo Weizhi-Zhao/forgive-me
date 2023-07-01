@@ -45,14 +45,16 @@
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "A1_testHAN");
+    ros::NodeHandle nh;
     float init_pos[3] = {RF_HAA_INIT_POS, RF_HFE_INIT_POS, RF_KFE_INIT_POS};
-    int signals[3] = {1, -1, -1};
+    int signals[3] = {1, 1, 1};
     Leg leg(R_F, init_pos, signals);
 
-    for(float x = 0; x < L2 / 3; x = x + 1){
+    for(float x = 0; x < L2 / 1.5; x = x + 5){
         float y = 0;
-        float z = 4/3 * L1;
+        float z = -4/3 * L1;
         leg.setCooridinate(x, y, z);
+        // ROS_INFO("x=%f, y=%f, z=%f", x, y, z);
         ros::Duration(2).sleep();
     }
 }

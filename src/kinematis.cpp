@@ -1,4 +1,5 @@
 #include "kinematics.h"
+#include "ros/ros.h"
 
 // 运动学反解
 void Leg::inverseKinematics(float coordinate[3], float angles[3]){
@@ -47,10 +48,11 @@ void Leg::setCooridinate(float x, float y, float z){
     cmd.q;       // desired angle (unit: radian)
     cmd.dq = 0;      // desired velocity (unit: radian/second)
     cmd.tau = 0;     // desired output torque (unit: N.m)
-    cmd.Kp = 0.3;      // desired position stiffness (unit: N.m/rad )
-    cmd.Kd = 0.3;      // desired velocity stiffness (unit: N.m/(rad/s) )
+    cmd.Kp = 0.002;      // desired position stiffness (unit: N.m/rad )
+    cmd.Kd = 0.002;      // desired velocity stiffness (unit: N.m/(rad/s) )
     for(int i = 0; i < 3; i++){
         cmd.q = angle[i];       // desired angle (unit: radian)
         motors[i].setMotor(cmd);
+        ROS_INFO("%d angle: %f", i, cmd.q);
     }
 }
