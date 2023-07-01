@@ -59,10 +59,10 @@ int main(int argc, char** argv)
                 , {-1, -1, -1}
             };
     Leg leg[4] = {
-          Leg(R_F, init_pos[0], signals[0])
-        , Leg(L_F, init_pos[1], signals[1])
-        , Leg(R_H, init_pos[2], signals[2])
-        , Leg(L_H, init_pos[3], signals[3])
+          Leg(0, R_F, init_pos[0], signals[0], true)
+        , Leg(1, L_F, init_pos[1], signals[1], false)
+        , Leg(2, R_H, init_pos[2], signals[2], true)
+        , Leg(3, L_H, init_pos[3], signals[3], false)
         };
 
     for(float x = 0; x < L2 / 1.5; x = x + 5){
