@@ -1,6 +1,8 @@
 #include "A1_controller.h"
 #include "ros/ros.h"
 #include "kinematics.h"
+#include "std_msgs/String.h"
+#include <string>
 // int main()
 // {
 //     // A1_motor motor("/dev/ttyUSB2", 2, RH_KFE_INIT_POS, -1);
@@ -42,10 +44,17 @@
 //     return 0;
 // }
 
+std::string command;
+
+void key_callback(const std_msgs::String::ConstPtr& msg){
+    command = msg->data;
+}
+
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "A1_testHAN");
+    ros::init(argc, argv, "A1_forgiveme");
     ros::NodeHandle nh;
+    ros::Subscriber key_sub = nh.subscribe("/key_controller", 10, key_callback);
     float init_pos[4][3] = {
               {RF_HAA_INIT_POS, RF_HFE_INIT_POS, RF_KFE_INIT_POS}
             , {LF_HAA_INIT_POS, LF_HFE_INIT_POS, LF_KFE_INIT_POS}
@@ -72,21 +81,40 @@ int main(int argc, char** argv)
 
     ros::Duration(2).sleep();
 
-    // trot代码，具体可看kinematics.h, kinematics.c, 可能有bug
+    // 根据command判断要执行的步态
     while(1){
-        for(int i = 8; i < 16; i++)
-        {
-            for(int j = 0; j < 4; j++){
-                leg[j].trot(i, 1);
-            }
-            ros::Duration(0.02).sleep();
+        if(command == "wp"){
+            // 按下w
+        }else if(command == "wr"){
+            // 松开w
+        }else if(command == "ap"){
+            // 按下a
+        }else if(command == "ar"){
+            // 松开a
+        }else if(command == "sp"){
+            // 按下s
+        }else if(command == "sr"){
+            // 松开s
+        }else if(command == "dp"){
+            // 按下d
+        }else if(command == "dr"){
+            // 松开d
+        }else{
+
         }
-        for(int i = 0; i < 8; i++)
-        {
-            for(int j = 0; j < 4; j++){
-                leg[j].trot(i, 1);
-            }
-            ros::Duration(0.02).sleep();
-        }
+        // for(int i = 8; i < 16; i++)
+        // {
+        //     for(int j = 0; j < 4; j++){
+        //         leg[j].trot(i, 1);
+        //     }
+        //     ros::Duration(0.02).sleep();
+        // }
+        // for(int i = 0; i < 8; i++)
+        // {
+        //     for(int j = 0; j < 4; j++){
+        //         leg[j].trot(i, 1);
+        //     }
+        //     ros::Duration(0.02).sleep();
+        // }
     }
 }
