@@ -5,7 +5,7 @@
 #include "data_stream.h"
 using namespace std;
 
-const float L1=20, L2=17.503, L3=17;
+const float L1=20, L2=17.503, L3=27;
 const float PI = 3.1415926;
 
 class Leg{

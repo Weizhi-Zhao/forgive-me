@@ -1,7 +1,7 @@
 #include "kinematics.h"
 #include "ros/ros.h"
 
-float Leg::upLength[4] = {3.5, 3.5, 3.5, 3.5};
+float Leg::upLength[4] = {10, 10, 10, 10};
 float Leg::downLength[4] = {-1, -1, -1, -1};
 float Leg::stepLength[4] = {10, 10, 10, 10};
 
@@ -19,10 +19,18 @@ void Leg::inverseKinematics(const float coordinate[3], float angles[3]){
                          );
                     
     // 向前为正
-    angles[1] = PI / 2 - atan(-z / x) - acos(
-                                                (pow(x, 2) + pow(z, 2) + pow(L1, 2) - pow(L2, 2))
-                                                / (2 * sqrt( pow(x, 2) + pow(z, 2) ) * L1)
-                                            );
+    if(x >= 0){
+        angles[1] = PI / 2 - atan(-z / x) - acos(
+                                                    (pow(x, 2) + pow(z, 2) + pow(L1, 2) - pow(L2, 2))
+                                                    / (2 * sqrt( pow(x, 2) + pow(z, 2) ) * L1)
+                                                );
+    }else{
+        angles[1] = -PI / 2 - atan(-z / x) - acos(
+                                                    (pow(x, 2) + pow(z, 2) + pow(L1, 2) - pow(L2, 2))
+                                                    / (2 * sqrt( pow(x, 2) + pow(z, 2) ) * L1)
+                                                );
+    }
+    
 
     angles[0] = 0;
 }
