@@ -75,16 +75,17 @@ int main(int argc, char** argv)
         };
 
     // 站立的代码。你要自己把xyz填进去
-    for(int i = 0; i < 4; i++){
-       leg[i].setCooridinate(0, 0, -L3);
-    }
+    // for(int i = 0; i < 4; i++){
+    //    leg[i].setCooridinate(0, 0, -L3);
+    // }
 
-    ros::Duration(2).sleep();
+    // ros::Duration(2).sleep();
 
     // 根据command判断要执行的步态
     while(1){
         if(command == "wp"){
             // 按下w
+            ROS_INFO("按下w");
         }else if(command == "wr"){
             // 松开w
         }else if(command == "ap"){
