@@ -1,10 +1,6 @@
 #include "kinematics.h"
 #include "ros/ros.h"
 
-float Leg::upLength[4] = {10, 10, 10, 10};
-float Leg::downLength[4] = {-1, -1, -1, -1};
-float Leg::stepLength[4] = {10, 10, 10, 10};
-
 // 运动学反解
 void Leg::inverseKinematics(const float coordinate[3], float angles[3]){
 
@@ -56,14 +52,27 @@ void Leg::setCooridinate(float x, float y, float z){
     setCooridinate(coordinate);
 }
 
+void Leg::set_stepSize(float expect_stepSize){
+    this->target_stepSize = expect_stepSize;
+}
+
 void Leg::trot(const int nowPhase, const float diff){
     float coordinate[3];
-    generateTrajectory(nowPhase, coordinate, diff);
+
+    // 根据目标步长，**温柔的**调整实际步长
+    if(this->target_stepSize > this->stepSize + this->dl){
+        this->stepSize += this->dl;
+    }else if(this->target_stepSize < this->stepSize - this->dl){
+        this->stepSize -= this->dl;
+    }else{
+        this->stepSize = this->target_stepSize;
+    }
+
+    generateTrajectory(nowPhase, coordinate);
     setCooridinate(coordinate);
 }
 
-// diff 代表左边步长的放大系数，右边步长的缩小系数
-void Leg::generateTrajectory(int nowPhase, float coordinate[3], const float diff){
+void Leg::generateTrajectory(int nowPhase, float coordinate[3]){
     float& x = coordinate[0];
     float& y = coordinate[1];
     float& z = coordinate[2];
@@ -83,19 +92,24 @@ void Leg::generateTrajectory(int nowPhase, float coordinate[3], const float diff
     // 把子相位缩放到2Pi里
     float t = subPhase / (this->phaseNum / 2 - 1);
 
-    // diff 代表左边步长的放大系数，右边步长的缩小系数
-    float scale = (this->id % 2 == 0) ? (1/diff) : diff;
-
     if(nowPhase < this->phaseNum / 2){
         // 抬腿
-        x = scale * Leg::stepLength[id] * ( t  - 0.5 / PI * sin(2*PI*t) );
+        x = this->stepLength * ( t  - 0.5 / PI * sin(2*PI*t) );
         y = 0;
-        z = Leg::upLength[id] * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
+        z = this->upLength * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
     }
     else{
         // 落腿
-        x = scale * Leg::stepLength[id] * ( 1 - t  + 0.5 / PI * sin(2*PI*t) );
+        x = this->stepLength * ( 1 - t  + 0.5 / PI * sin(2*PI*t) );
         y = 0;
-        z = Leg::downLength[id] * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
+        z = this->downLength * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
+
+        // 水平落脚代码（没测过不敢保证对，但是应该试试）
+        /*
+        x = this->stepLength * ( 1 - t  + 0.5 / PI * sin(2*PI*t) );
+        // x = this->stepLength * ( 1 - t ); //也说不定线性的更好？
+        y = 0;
+        z = - L3;
+        */
     }
 }

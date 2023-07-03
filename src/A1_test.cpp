@@ -44,10 +44,51 @@
 //     return 0;
 // }
 
+const int PHASE_NUM = 16;
+const float max_stepSize = 10; //设置最大步长
 std::string command;
 
 void key_callback(const std_msgs::String::ConstPtr& msg){
     command = msg->data;
+}
+
+void forward(Leg& leg[4]){
+    leg[0].set_stepSize(max_stepSize);
+    leg[2].set_stepSize(max_stepSize);
+    leg[1].set_stepSize(max_stepSize);
+    leg[3].set_stepSize(max_stepSize);
+}
+
+void backward(Leg& leg[4]){
+    leg[0].set_stepSize(-max_stepSize);
+    leg[2].set_stepSize(-max_stepSize);
+    leg[1].set_stepSize(-max_stepSize);
+    leg[3].set_stepSize(-max_stepSize);
+}
+
+void stop(Leg& leg[4]){
+    leg[0].set_stepSize(0);
+    leg[2].set_stepSize(0);
+    leg[1].set_stepSize(0);
+    leg[3].set_stepSize(0);
+}
+
+void turn_right(Leg& leg[4]){
+    // 右
+    leg[0].set_stepSize(-max_stepSize);
+    leg[2].set_stepSize(-max_stepSize);
+    // 左
+    leg[1].set_stepSize(max_stepSize);
+    leg[3].set_stepSize(max_stepSize);
+}
+
+void turn_left(Leg& leg[4]){
+    // 右
+    leg[0].set_stepSize(max_stepSize);
+    leg[2].set_stepSize(max_stepSize);
+    // 左
+    leg[1].set_stepSize(-max_stepSize);
+    leg[3].set_stepSize(-max_stepSize);
 }
 
 int main(int argc, char** argv)
@@ -74,49 +115,71 @@ int main(int argc, char** argv)
         , Leg(3, L_H, init_pos[3], signals[3], true)
         };
 
-    // 站立的代码。你要自己把xyz填进去
-    // for(int i = 0; i < 4; i++){
-    //    leg[i].setCooridinate(0, 0, -L3);
-    // }
+    // 站立的代码。
+    for(int i = 0; i < 4; i++){
+       leg[i].setCooridinate(0, 0, -L3);
+    }
 
-    // ros::Duration(2).sleep();
-
+    int phase = 0;
+    bool p_presed = false; //是否按下p（是否开始踏步）
     // 根据command判断要执行的步态
     while(ros::ok()){
         ros::spinOnce(); // 网上说加上这句才能回调函数
-        if(command == "wp"){
+        if(command == 'pp'){
+            // p: play
+            // 按p开始踏步
+            stop(leg);
+            for(int i = 0; i < PHASE_NUM / 2; i++)
+            {
+                leg[0].trot(i);
+                leg[3].trot(i);
+                ros::Duration(0.02).sleep();
+            }
+            for(int i = PHASE_NUM / 2; i < PHASE_NUM; i++)
+            {
+                leg[0].trot(i);
+                leg[3].trot(i);
+                leg[1].trot(i);
+                leg[2].trot(i);
+                ros::Duration(0.02).sleep();
+            }
+            p_presed = true;
+        }else if(p_presed == false){
+            // 如果开没有开始踏步，就跳过后面的
+            continue;
+        }if(command == "wp"){
             // 按下w
-            ROS_INFO("按下w");
+            // ROS_INFO("按下w");
+            forward(leg);
         }else if(command == "wr"){
             // 松开w
+            stop(leg);
         }else if(command == "ap"){
             // 按下a
+            turn_left(leg);
         }else if(command == "ar"){
             // 松开a
         }else if(command == "sp"){
             // 按下s
+            backward(leg);
         }else if(command == "sr"){
             // 松开s
+            stop(leg);
         }else if(command == "dp"){
             // 按下d
+            turn_left(leg);
         }else if(command == "dr"){
             // 松开d
+            stop(leg);
         }else{
-
+            stop(leg);
         }
-        // for(int i = 8; i < 16; i++)
-        // {
-        //     for(int j = 0; j < 4; j++){
-        //         leg[j].trot(i, 1);
-        //     }
-        //     ros::Duration(0.02).sleep();
-        // }
-        // for(int i = 0; i < 8; i++)
-        // {
-        //     for(int j = 0; j < 4; j++){
-        //         leg[j].trot(i, 1);
-        //     }
-        //     ros::Duration(0.02).sleep();
-        // }
+
+        // trot
+        for(int j = 0; j < 4; j++){
+            leg[j].trot(phase);
+        }
+        phase = (phase + 1) % PHASE_NUM;
+        ros::Duration(0.02).sleep();
     }
 }

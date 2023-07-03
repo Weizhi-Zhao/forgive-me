@@ -18,11 +18,19 @@ public:
         phaseNum = _phaseNum;
         // 如果该腿相位落后的话，相位偏置为半个周期
         phaseBias = _phaseBias ? phaseNum / 2 : 0;
+
+        // 设置初始的步态参数
+        upLength = 10;
+        downLength = -1;
+        stepSize = 0;
+        dl = 10 / phaseNum;
+        target_stepSize = stepSize
     }
     
     void setCooridinate(float coordinate[3]);
     void setCooridinate(float x, float y, float z);
     void trot(const int nowPhase, const float diff);
+    void set_stepSize(float expect_stepSize);
 
 private:
     int id;
@@ -32,9 +40,15 @@ private:
     // 相位偏置，有一对腿（对角线）相位比另一对腿，落后半个周期
     int phaseBias;
 
-    static float upLength[4];
-    static float downLength[4];
-    static float stepLength[4];
+    // 每个腿有自己的步态参数
+    float upLength;
+    float downLength;
+    float stepSize;
+
+    // 目标步长（当前的步长不一定等于目标步长）
+    // 当前步长会缓慢的接近目标步长
+    float target_stepSize;
+    float dl; //这是每个轨迹点的步长变化量（看代码更好懂）
 
     void generateTrajectory(int phase, float coordinate[3], const float diff);
 
