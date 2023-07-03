@@ -82,7 +82,8 @@ int main(int argc, char** argv)
     // ros::Duration(2).sleep();
 
     // 根据command判断要执行的步态
-    while(1){
+    while(ros::ok()){
+        ros::spinOnce(); // 网上说加上这句才能回调函数
         if(command == "wp"){
             // 按下w
             ROS_INFO("按下w");
