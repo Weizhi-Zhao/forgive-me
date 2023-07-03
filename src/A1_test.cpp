@@ -65,13 +65,33 @@ int main(int argc, char** argv)
         , Leg(3, L_H, init_pos[3], signals[3], false)
         };
 
-    for(float x = 0; x < L2 / 1.5; x = x + 5){
-        float y = 0;
-        float z = -4/3 * L1;
-        for(int i = 0; i < 4; i++){
-            leg[i].setCooridinate(x, y, z);
-        }
-        // ROS_INFO("x=%f, y=%f, z=%f", x, y, z);
-        ros::Duration(2).sleep();
+    // for(float x = 0; x < L2 / 1.5; x = x + 5){
+    //     float y = 0;
+    //     float z = -4/3 * L1;
+    //     for(int i = 0; i < 4; i++){
+    //         leg[i].setCooridinate(x, y, z);
+    //     }
+    //     // ROS_INFO("x=%f, y=%f, z=%f", x, y, z);
+    //     ros::Duration(2).sleep();
+    // }
+
+    // 站立的代码。你要自己把xyz填进去
+    for(int i = 0; i < 4; i++){
+       leg[i].setCooridinate(0, 0, -L3);
     }
+
+    ros::Duration(2).sleep();
+
+    // trot代码，具体可看kinematics.h, kinematics.c, 可能有bug
+    /*
+    while(1){
+        for(int i = 0; i < 16; i++)
+        {
+            for(int j = 0; j < 4; j++){
+                leg[j].trot(i, 1);
+            }
+            ros::Duration(0.5).sleep();
+        }
+    }
+    */
 }

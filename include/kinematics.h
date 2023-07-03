@@ -22,7 +22,7 @@ public:
     
     void setCooridinate(float coordinate[3]);
     void setCooridinate(float x, float y, float z);
-    void trot(int nowPhase);
+    void trot(const int nowPhase, const float diff);
 
 private:
     int id;
@@ -36,7 +36,7 @@ private:
     static float downLength[4];
     static float stepLength[4];
 
-    void generateTrajectory(int phase, float coordinate[3]);
+    void generateTrajectory(int phase, float coordinate[3], const float diff);
 
     void inverseKinematics(const float coordinate[3], float angles[3]);
 };

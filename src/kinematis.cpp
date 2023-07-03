@@ -48,42 +48,45 @@ void Leg::setCooridinate(float x, float y, float z){
     setCooridinate(coordinate);
 }
 
-void Leg::trot(int nowPhase){
+void Leg::trot(const int nowPhase, const float diff){
     float coordinate[3];
-    generateTrajectory(nowPhase, coordinate);
+    generateTrajectory(nowPhase, coordinate, diff);
     setCooridinate(coordinate);
 }
 
-void Leg::generateTrajectory(int phase, float coordinate[3])
-{
+// diff 代表左边步长的放大系数，右边步长的缩小系数
+void Leg::generateTrajectory(int nowPhase, float coordinate[3], const float diff){
     float& x = coordinate[0];
     float& y = coordinate[1];
     float& z = coordinate[2];
 
     // 把腿偏置到属于它的周期
-    phase = (phase + this->phaseBias) % this->phaseNum;
+    nowPhase = (nowPhase + this->phaseBias) % this->phaseNum;
 
     // 如果把总周期的一半当成子周期，subPhase就是子周期的相位
     float subPhase;
-    if(phase >= this->phaseNum / 2){
-        subPhase = phase - this->phaseNum / 2;
+    if(nowPhase >= this->phaseNum / 2){
+        subPhase = nowPhase - this->phaseNum / 2;
     }
     else{
-        subPhase = phase;
+        subPhase = nowPhase;
     }
 
     // 把子相位缩放到2Pi里
     float t = subPhase / (this->phaseNum / 2 - 1);
 
-    if(phase < this->phaseNum / 2){
+    // diff 代表左边步长的放大系数，右边步长的缩小系数
+    float scale = (this->id % 2 == 0) ? (1/diff) : diff;
+
+    if(nowPhase < this->phaseNum / 2){
         // 抬腿
-        x = Leg::stepLength[id] * ( t  - 0.5 / PI * sin(2*PI*t) );
+        x = scale * Leg::stepLength[id] * ( t  - 0.5 / PI * sin(2*PI*t) );
         y = 0;
         z = Leg::upLength[id] * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
     }
     else{
         // 落腿
-        x = Leg::stepLength[id] * ( 1 - t  + 0.5 / PI * sin(2*PI*t) );
+        x = scale * Leg::stepLength[id] * ( 1 - t  + 0.5 / PI * sin(2*PI*t) );
         y = 0;
         z = Leg::downLength[id] * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
     }
