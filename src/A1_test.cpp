@@ -3,94 +3,63 @@
 #include "kinematics.h"
 #include "std_msgs/String.h"
 #include <string>
-// int main()
-// {
-//     // A1_motor motor("/dev/ttyUSB2", 2, RH_KFE_INIT_POS, -1);
-//     A1_motor* motor[12];
-//     motor[0]  = new A1_motor(R_F, 0, RF_HAA_INIT_POS,  1);
-//     motor[1]  = new A1_motor(R_F, 1, RF_HFE_INIT_POS, -1);
-//     motor[2]  = new A1_motor(R_F, 2, RF_KFE_INIT_POS, -1);
-//     motor[3]  = new A1_motor(L_F, 0, LF_HAA_INIT_POS,  1);
-//     motor[4]  = new A1_motor(L_F, 1, LF_HFE_INIT_POS,  1);
-//     motor[5]  = new A1_motor(L_F, 2, LF_KFE_INIT_POS,  1);
-//     motor[6]  = new A1_motor(R_H, 0, RH_HAA_INIT_POS, -1);
-//     motor[7]  = new A1_motor(R_H, 1, RH_HFE_INIT_POS, -1);
-//     motor[8]  = new A1_motor(R_H, 2, RH_KFE_INIT_POS, -1);
-//     motor[9]  = new A1_motor(L_H, 0, LH_HAA_INIT_POS, -1);
-//     motor[10] = new A1_motor(L_H, 1, LH_HFE_INIT_POS,  1);
-//     motor[11] = new A1_motor(L_H, 2, LH_KFE_INIT_POS,  1);
 
-//     MotorCmd cmd;
-//     cmd.mode = TEST_MODE;
-//     cmd.Kp = 0;
-//     cmd.Kd = 3;
-//     cmd.q = 0.602089;
-//     cmd.dq = 2;
-//     cmd.tau = -3.84;
-//     long long cnt;
-//     // motor.setMotor(cmd);
-//     MotorState state;
-//     while(1){
-//         for(int i = 0; i<12; i++)
-//         {
-//             // motor[i]->setMotor(cmd);
-//             motor[i]->getMotorData(state);
-//             if(cnt % 50 == 0) ROS_INFO("%d pos: %f", i, state.q);
-//         }
-//         if(cnt % 50 == 0) 
-//         ROS_INFO("\n");
-//         cnt++;
-//     }
-//     return 0;
-// }
+const int CYCLE_CHUNKING[4] = {16, 10, 16, 10};
+const int PHASE_NUM = CYCLE_CHUNKING[0] + CYCLE_CHUNKING[1] + CYCLE_CHUNKING[2] + CYCLE_CHUNKING[3];
+const float MAX_STEPSIZE = 5; //设置最大步长
+const float DELAY_TIME = 0.002;
+const float MAX_UPLENGTH = 5, MAX_DOWNLENGTH = -1;
 
-const int PHASE_NUM = 16;
-const float max_stepSize = 10; //设置最大步长
 std::string command;
 
 void key_callback(const std_msgs::String::ConstPtr& msg){
     command = msg->data;
 }
 
-void forward(Leg& leg[4]){
-    leg[0].set_stepSize(max_stepSize);
-    leg[2].set_stepSize(max_stepSize);
-    leg[1].set_stepSize(max_stepSize);
-    leg[3].set_stepSize(max_stepSize);
+void forward(Leg leg[4]){
+    leg[0].set_step(MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[2].set_step(MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[1].set_step(MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[3].set_step(MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
 }
 
-void backward(Leg& leg[4]){
-    leg[0].set_stepSize(-max_stepSize);
-    leg[2].set_stepSize(-max_stepSize);
-    leg[1].set_stepSize(-max_stepSize);
-    leg[3].set_stepSize(-max_stepSize);
+void backward(Leg leg[4]){
+    leg[0].set_step(-MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[2].set_step(-MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[1].set_step(-MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[3].set_step(-MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
 }
 
-void stop(Leg& leg[4]){
-    leg[0].set_stepSize(0);
-    leg[2].set_stepSize(0);
-    leg[1].set_stepSize(0);
-    leg[3].set_stepSize(0);
+void stop(Leg leg[4]){
+    leg[0].set_step(0, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[2].set_step(0, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[1].set_step(0, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[3].set_step(0, MAX_UPLENGTH, MAX_DOWNLENGTH);
 }
 
-void turn_right(Leg& leg[4]){
+void turn_right(Leg leg[4]){
     // 右
-    leg[0].set_stepSize(-max_stepSize);
-    leg[2].set_stepSize(-max_stepSize);
+    leg[0].set_step(-MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[2].set_step(-MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
     // 左
-    leg[1].set_stepSize(max_stepSize);
-    leg[3].set_stepSize(max_stepSize);
+    leg[1].set_step(MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[3].set_step(MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
 }
 
-void turn_left(Leg& leg[4]){
+void turn_left(Leg leg[4]){
     // 右
-    leg[0].set_stepSize(max_stepSize);
-    leg[2].set_stepSize(max_stepSize);
+    leg[0].set_step(MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[2].set_step(MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
     // 左
-    leg[1].set_stepSize(-max_stepSize);
-    leg[3].set_stepSize(-max_stepSize);
+    leg[1].set_step(-MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
+    leg[3].set_step(-MAX_STEPSIZE, MAX_UPLENGTH, MAX_DOWNLENGTH);
 }
 
+void stand(Leg leg[4]){
+    for(int i = 0; i < 4; i++){
+        leg[i].set_step(0, 0, 0);
+    }
+}
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "A1_forgiveme");
@@ -109,77 +78,112 @@ int main(int argc, char** argv)
                 , {-1, -1, -1}
             };
     Leg leg[4] = {
-          Leg(0, R_F, init_pos[0], signals[0], true)
-        , Leg(1, L_F, init_pos[1], signals[1], false)
-        , Leg(2, R_H, init_pos[2], signals[2], false)
-        , Leg(3, L_H, init_pos[3], signals[3], true)
+          Leg(0, R_F, init_pos[0], signals[0], true, CYCLE_CHUNKING)
+        , Leg(1, L_F, init_pos[1], signals[1], false, CYCLE_CHUNKING)
+        , Leg(2, R_H, init_pos[2], signals[2], false, CYCLE_CHUNKING)
+        , Leg(3, L_H, init_pos[3], signals[3], true, CYCLE_CHUNKING)
         };
 
-    // 站立的代码。
-    for(int i = 0; i < 4; i++){
-       leg[i].setCooridinate(0, 0, -L3);
-    }
-
-    int phase = 0;
-    bool p_presed = false; //是否按下p（是否开始踏步）
-    // 根据command判断要执行的步态
+    int phase;
+    bool p_pressed;
     while(ros::ok()){
-        ros::spinOnce(); // 网上说加上这句才能回调函数
-        if(command == 'pp'){
-            // p: play
-            // 按p开始踏步
-            stop(leg);
-            for(int i = 0; i < PHASE_NUM / 2; i++)
-            {
-                leg[0].trot(i);
-                leg[3].trot(i);
-                ros::Duration(0.02).sleep();
-            }
-            for(int i = PHASE_NUM / 2; i < PHASE_NUM; i++)
-            {
-                leg[0].trot(i);
-                leg[3].trot(i);
-                leg[1].trot(i);
-                leg[2].trot(i);
-                ros::Duration(0.02).sleep();
-            }
-            p_presed = true;
-        }else if(p_presed == false){
-            // 如果开没有开始踏步，就跳过后面的
-            continue;
-        }if(command == "wp"){
-            // 按下w
-            // ROS_INFO("按下w");
-            forward(leg);
-        }else if(command == "wr"){
-            // 松开w
-            stop(leg);
-        }else if(command == "ap"){
-            // 按下a
-            turn_left(leg);
-        }else if(command == "ar"){
-            // 松开a
-        }else if(command == "sp"){
-            // 按下s
-            backward(leg);
-        }else if(command == "sr"){
-            // 松开s
-            stop(leg);
-        }else if(command == "dp"){
-            // 按下d
-            turn_left(leg);
-        }else if(command == "dr"){
-            // 松开d
-            stop(leg);
-        }else{
-            stop(leg);
+
+        // 站立的代码。
+        for(int i = 0; i < 4; i++){
+            leg[i].setCooridinate(0, 0, -L3);
         }
 
-        // trot
-        for(int j = 0; j < 4; j++){
-            leg[j].trot(phase);
+        ros::Duration(0.2).sleep();
+
+        phase = 0;
+        p_pressed = false; //是否按下p（是否开始踏步）
+        // 根据command判断要执行的步态
+        while(ros::ok()){
+            ros::spinOnce(); // 网上说加上这句才能回调函数
+            if(command == "pp" && p_pressed == false){
+                // p: play
+                // 按p开始踏步
+                stop(leg);
+                for(int i = 0; i < PHASE_NUM / 2; i++)
+                {
+                    leg[1].trot(i);
+                    leg[2].trot(i);
+                    ros::Duration(DELAY_TIME).sleep();
+                }
+                for(int i = PHASE_NUM / 2; i < PHASE_NUM; i++)
+                {
+                    leg[0].trot(i);
+                    leg[3].trot(i);
+                    leg[1].trot(i);
+                    leg[2].trot(i);
+                    ros::Duration(DELAY_TIME).sleep();
+                }
+                p_pressed = true;
+            }else if(p_pressed == false){
+                // 如果开没有开始踏步，就跳过后面的
+                continue;
+            }else if(command == "wp"){
+                // 按下w
+                // ROS_INFO("按下w");
+                forward(leg);
+            }else if(command == "wr"){
+                // 松开w
+                stop(leg);
+            }else if(command == "ap"){
+                // 按下a
+                turn_left(leg);
+            }else if(command == "ar"){
+                // 松开a
+                stop(leg);
+            }else if(command == "sp"){
+                // 按下s
+                backward(leg);
+            }else if(command == "sr"){
+                // 松开s
+                stop(leg);
+            }else if(command == "dp"){
+                // 按下d
+                turn_right(leg);
+            }else if(command == "dr"){
+                // 松开d
+                stop(leg);
+            }else if(command == "kp" || command == "kr"){
+                // k: kill
+                // 停止踏步
+                stand(leg);
+                // break;
+            }else{
+                stop(leg);
+            }
+
+            // trot
+            for(int j = 0; j < 4; j++){
+                leg[j].trot(phase);
+            }
+            phase = (phase + 1) % PHASE_NUM;
+            ros::Duration(DELAY_TIME).sleep();
         }
-        phase = (phase + 1) % PHASE_NUM;
-        ros::Duration(0.02).sleep();
+
+        // 站住
+        // for(int i = phase; i < PHASE_NUM; i++){
+        //     leg[0].trot(i);
+        //     leg[3].trot(i);
+        //     leg[1].trot(i);
+        //     leg[2].trot(i);
+        //     ros::Duration(DELAY_TIME).sleep();
+        // }
+        // for(int i = 0; i < PHASE_NUM / 2; i++){
+        //     leg[0].trot(i);
+        //     leg[3].trot(i);
+        //     leg[1].trot(i);
+        //     leg[2].trot(i);
+        //     ros::Duration(DELAY_TIME).sleep();
+        // }
+        // for(int i = PHASE_NUM / 2; i < PHASE_NUM; i++)
+        // {
+        //     leg[1].trot(i);
+        //     leg[2].trot(i);
+        //     ros::Duration(DELAY_TIME).sleep();
+        // }
     }
 }

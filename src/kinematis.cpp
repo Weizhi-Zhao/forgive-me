@@ -1,5 +1,13 @@
 #include "kinematics.h"
 #include "ros/ros.h"
+#include <math.h>
+
+Leg::DYNAMIC_KP = {
+                    {0.005, 0.003, 0.003},
+                    {0.01 , 0.006, 0.006},
+                    {0.02 , 0.01 , 0.01 },
+                    {0.01 , 0.006, 0.006},
+                  };
 
 // 运动学反解
 void Leg::inverseKinematics(const float coordinate[3], float angles[3]){
@@ -31,7 +39,7 @@ void Leg::inverseKinematics(const float coordinate[3], float angles[3]){
     angles[0] = 0;
 }
 
-void Leg::setCooridinate(float coordinate[3]){
+void Leg::setCooridinate(float coordinate[3], float kp[3]){
     float angle[3];
     inverseKinematics(coordinate, angle);
     MotorCmd cmd;
@@ -39,77 +47,124 @@ void Leg::setCooridinate(float coordinate[3]){
     cmd.q;       // desired angle (unit: radian)
     cmd.dq = 0;      // desired velocity (unit: radian/second)
     cmd.tau = 0;     // desired output torque (unit: N.m)
-    cmd.Kp = 0.002;      // desired position stiffness (unit: N.m/rad )
-    cmd.Kd = 0.002;      // desired velocity stiffness (unit: N.m/(rad/s) )
+    // cmd.Kp = 0.06;      // desired position stiffness (unit: N.m/rad )
+    cmd.Kd = 3;      // desired velocity stiffness (unit: N.m/(rad/s) )
     for(int i = 0; i < 3; i++){
         cmd.q = angle[i];       // desired angle (unit: radian)
+        cmd.Kp = kp[i];
         motors[i].setMotor(cmd);
     }
 }
 
-void Leg::setCooridinate(float x, float y, float z){
+void Leg::setCooridinate(float x, float y, float z, float kp[3]){
     float coordinate[3] = {x, y, z};
-    setCooridinate(coordinate);
+    setCooridinate(coordinate, kp);
 }
 
-void Leg::set_stepSize(float expect_stepSize){
+void Leg::set_step(float expect_stepSize, float expect_upLength, float expect_downLength){
     this->target_stepSize = expect_stepSize;
+    this->target_upLength = expect_upLength;
+    this->target_downLength = expect_downLength;
 }
 
-void Leg::trot(const int nowPhase, const float diff){
-    float coordinate[3];
 
-    // 根据目标步长，**温柔的**调整实际步长
-    if(this->target_stepSize > this->stepSize + this->dl){
-        this->stepSize += this->dl;
-    }else if(this->target_stepSize < this->stepSize - this->dl){
-        this->stepSize -= this->dl;
+void Leg::trot(const int nowPhase){
+    float coordinate[3];
+    int kp_id;
+
+    // 根据目标步长，**温柔的**调整实际参数
+    graduallyApproching(this->target_stepSize, this->stepSize, dl);
+    graduallyApproching(this->target_upLength, this->upLength, dUp);
+    graduallyApproching(this->target_downLength, this->downLength, dDown);
+
+    // 根据相位生成kp，和轨迹
+    generateTrajectory(nowPhase, coordinate, kp_id);
+    setCooridinate(coordinate, Leg::DYNAMIC_KP[kp_id]);
+}
+
+void graduallyApproching(float target, float& actual, float d){
+    if(target > actual + d){
+        actual += d;
+    }else if(target < actual - d){
+        actual -= d;
     }else{
-        this->stepSize = this->target_stepSize;
+        actual = target;
+    }
+}
+
+void Leg::generateTrajectory(int nowPhase, float coordinate[3], int& kp_id){
+    // 把腿偏置到属于它的周期
+    nowPhase = (nowPhase + this->phaseBias) % this->phaseNum;
+
+    float subPhase = nowPhase;
+    int chunk_id = 0;
+    for(chunk_id = 0; chunk_id < 4; chunk_id++){
+        if(subPhase >= this->cycleChunking[chunk_id]){
+            subPhase -= this->cycleChunking[chunk_id];
+        }else{
+            break;
+        }
     }
 
-    generateTrajectory(nowPhase, coordinate);
-    setCooridinate(coordinate);
+    float t = subPhase / (this->cycleChunking[chunk_id] - 1);
+
+    if(chunk_id == 0){
+        swing_phase(t, coordinate);
+    }else if(chunk_id == 1){
+        stop_phase_1(t, coordinate);
+    }else if(chunk_id == 2){
+        prop_phase(t, coordinate);
+    }else if(chunk_id == 3){
+        stop_phase_2(t, coordinate);
+    }
+
+    kp_id = chunk_id;
 }
 
-void Leg::generateTrajectory(int nowPhase, float coordinate[3]){
+void Leg::swing_phase(const float t, float coordinate[3]){
     float& x = coordinate[0];
     float& y = coordinate[1];
     float& z = coordinate[2];
 
-    // 把腿偏置到属于它的周期
-    nowPhase = (nowPhase + this->phaseBias) % this->phaseNum;
+    x = this->stepSize * ( t  - 0.5 / PI * sin(2*PI*t) - 0.5) + abs(this->stepSize) / 2;
+    y = 0;
+    z = this->upLength * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
+}
 
-    // 如果把总周期的一半当成子周期，subPhase就是子周期的相位
-    float subPhase;
-    if(nowPhase >= this->phaseNum / 2){
-        subPhase = nowPhase - this->phaseNum / 2;
-    }
-    else{
-        subPhase = nowPhase;
-    }
+void Leg::prop_phase(const float t, float coordinate[3]){
+    float& x = coordinate[0];
+    float& y = coordinate[1];
+    float& z = coordinate[2];
 
-    // 把子相位缩放到2Pi里
-    float t = subPhase / (this->phaseNum / 2 - 1);
+    x = this->stepSize * ( 1 - t  + 0.5 / PI * sin(2*PI*t) -0.5) + abs(this->stepSize) / 2;
+    y = 0;
+    z = this->downLength * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
 
-    if(nowPhase < this->phaseNum / 2){
-        // 抬腿
-        x = this->stepLength * ( t  - 0.5 / PI * sin(2*PI*t) );
-        y = 0;
-        z = this->upLength * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
-    }
-    else{
-        // 落腿
-        x = this->stepLength * ( 1 - t  + 0.5 / PI * sin(2*PI*t) );
-        y = 0;
-        z = this->downLength * ( 0.5 - 0.5 * cos(2*PI*t) ) - L3;
+    // 水平落脚代码（没测过不敢保证对，但是应该试试）
+    // x = this->stepSize * ( 1 - t  + 0.5 / PI * sin(2*PI*t) - 0.5) + abs(this->stepSize) / 2;
+    // // x = this->stepSize * ( 1 - t ); //也说不定线性的更好？
+    // y = 0;
+    // z = - L3;
+}
 
-        // 水平落脚代码（没测过不敢保证对，但是应该试试）
-        /*
-        x = this->stepLength * ( 1 - t  + 0.5 / PI * sin(2*PI*t) );
-        // x = this->stepLength * ( 1 - t ); //也说不定线性的更好？
-        y = 0;
-        z = - L3;
-        */
-    }
+// 摆动相之后的停顿
+void Leg::stop_phase_1(const float t, float coordinate[3]){
+    float& x = coordinate[0];
+    float& y = coordinate[1];
+    float& z = coordinate[2];
+
+    x = this->stepSize * (0.5) + abs(this->stepSize) / 2;
+    y = 0;
+    z = -L3;
+}
+
+// 支撑相之后的停顿
+void Leg::stop_phase_2(const float t, float coordinate[3]){
+    float& x = coordinate[0];
+    float& y = coordinate[1];
+    float& z = coordinate[2];
+
+    x = this->stepSize * (-0.5) + abs(this->stepSize) / 2;
+    y = 0;
+    z = -L3;
 }
